@@ -3,13 +3,17 @@
 GtkWidget *window;
 GtkWidget *text_field;
 GtkEventController *keyboard_space;
+//text buffer
+GtkTextBuffer *text_buffer;
+GtkWidget *box;
+GtkWidget *scroll;
 
 const string ProgramName = "KbdMod";
 
-void init_window() {
+void init_window(GtkApplication *app, gpointer user_data) {
 
     //create window
-    window = gtk_window_new();
+    window = gtk_application_window_new(app);
     if(window==NULL)
     {
         throw std::runtime_error("Error: Failed to create the window.");
@@ -17,7 +21,7 @@ void init_window() {
     gtk_window_set_title(GTK_WINDOW(window), ProgramName.c_str());
     gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
 
-    GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     if(box==NULL)
     {
         throw std::runtime_error("Error: Failed to create the box container.");
@@ -39,21 +43,27 @@ void init_window() {
     {
         throw std::runtime_error("Error: Failed to create the text field.");
     }
-    gtk_box_append(GTK_BOX(box), text_field);
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(text_field), TRUE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text_field), TRUE);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(text_field), GTK_WRAP_WORD);
+    gtk_text_view_set_left_margin(GTK_TEXT_VIEW(text_field), 10);
+    gtk_text_view_set_right_margin(GTK_TEXT_VIEW(text_field), 10);
+    gtk_text_view_set_top_margin(GTK_TEXT_VIEW(text_field), 10);
+    gtk_text_view_set_bottom_margin(GTK_TEXT_VIEW(text_field), 10);
+    gtk_text_view_set_accepts_tab(GTK_TEXT_VIEW(text_field), FALSE);
 
-    //set background color
-    GtkStyleContext *style;
-    GdkRGBA color;
+    
+    //make it scrollable
+    scroll = gtk_scrolled_window_new();
+    //scrollbox size request
+    gtk_widget_set_size_request(scroll, -1, 300);
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), text_field);
 
-    style = gtk_widget_get_style_context(window);
-    //get color from gtk theme
-    gtk_style_context_lookup_color(style, "theme_bg_color", &color);
-    //set color
-    gtk_widget_override_background_color(window, GTK_STATE_FLAG_NORMAL, &color);
+    //add to box
+    gtk_box_append(GTK_BOX(box), scroll);
 
+    text_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_field));
 
     //show window
-    gtk_widget_show(box);
-    gtk_widget_show(text_field);
     gtk_widget_show(window);
 }

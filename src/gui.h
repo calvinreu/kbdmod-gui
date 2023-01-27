@@ -2,6 +2,9 @@
 #include <string>
 #include <gtk/gtk.h>
 #include <stdexcept>
+#include <fstream>
+#include <sstream>
+#include "io.h"
 
 using std::vector;
 using std::string;
@@ -22,6 +25,9 @@ struct Keyboard {
 
 extern Keyboard keyboard;
 
+//activation func
+extern void activate(GtkApplication *app, gpointer user_data);
+
 //load the keyboard from a file to the keyboard vector
 extern void loadKeyboard(string filename);
 
@@ -29,4 +35,8 @@ extern void loadKeyboard(string filename);
 extern void createKeyboard(string name);
 
 //init window
-extern void init_window();
+extern void init_window(GtkApplication *app, gpointer user_data);
+
+//output device names
+extern string getDeviceName();
+

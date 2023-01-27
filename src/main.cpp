@@ -8,13 +8,31 @@ using std::string;
 #define VERSION "build error version unknown"
 #endif
 
+extern Keyboard keyboard;
+extern GtkWidget *text_field;
+extern GtkEventController *keyboard_space;
+extern GtkTextBuffer *text_buffer;
+
 
 int main(int argc, char *argv[])
 {
-    gtk_init();
-    init_window();
+    GtkApplication *app;
+    int status;
 
-    system("sleep 1");
+    //create application
+    app = gtk_application_new("org.gtk.example", G_APPLICATION_DEFAULT_FLAGS);
+    if(app==NULL)
+    {
+        throw std::runtime_error("Error: Failed to create the application.");
+    }
 
-    return 0;
+    //connect signals
+    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+
+    //run application
+    status = g_application_run(G_APPLICATION(app), argc, argv);
+    
+    g_object_unref(app);
+
+    return status;
 }
