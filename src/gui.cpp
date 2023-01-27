@@ -64,6 +64,9 @@ string getDeviceName() {
         }
     }
 
+    //remove the temporary files
+    system("rm /tmp/devices.txt");
+    system("rm /tmp/keyboard.txt");
     Gclear();
     Gprintln("Selected device: " + keyboard_name);
     return keyboard_name;
