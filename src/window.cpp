@@ -21,6 +21,9 @@ void init_window(GtkApplication *app, gpointer user_data) {
     gtk_window_set_title(GTK_WINDOW(window), ProgramName.c_str());
     gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
 
+    //conect signals
+    g_signal_connect(window, "destroy", G_CALLBACK(quit_callback), NULL);
+
     box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     if(box==NULL)
     {

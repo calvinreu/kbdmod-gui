@@ -1,6 +1,7 @@
 #include "io.h"
 
 gboolean input_ready;
+extern gboolean quit;
 string input;
 
 extern GtkTextBuffer *text_buffer;
@@ -47,6 +48,9 @@ string textSelector(string text, vector<string> options) {
         option_number = std::stoi(input_text);
     }catch (std::invalid_argument& e) {
         Gprintln("\nError: " + string(e.what()) + "\n input: " + input_text);
+        //check if program is running
+        if (quit)
+            return "";
         return textSelector(text, options);
     }
     //check if number is valid

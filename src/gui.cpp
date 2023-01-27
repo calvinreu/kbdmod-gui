@@ -2,6 +2,7 @@
 
 extern const string ProgramName = "KbdMod";
 extern GtkTextBuffer *text_buffer;
+gboolean quit = false;
 
 void activate(GtkApplication *app, gpointer user_data) {
     init_window(app, user_data);
@@ -10,7 +11,10 @@ void activate(GtkApplication *app, gpointer user_data) {
 }
 
 void quit_callback(GtkWidget *widget, gpointer data) {
+    quit = true;
     IO_quit_callback(widget, data);
+    //send event to finish the loop
+    g_application_quit(G_APPLICATION(widget));
 }
 
 string getDeviceName() {
