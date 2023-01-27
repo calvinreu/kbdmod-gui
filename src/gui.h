@@ -27,6 +27,7 @@ extern Keyboard keyboard;
 
 //activation func
 extern void activate(GtkApplication *app, gpointer user_data);
+extern void quit_callback(GtkWidget *widget, gpointer data);
 
 //load the keyboard from a file to the keyboard vector
 extern void loadKeyboard(string filename);

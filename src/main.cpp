@@ -28,6 +28,7 @@ int main(int argc, char *argv[])
 
     //connect signals
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+    g_signal_connect(app, "shutdown", G_CALLBACK(quit_callback), NULL);
 
     //run application
     status = g_application_run(G_APPLICATION(app), argc, argv);

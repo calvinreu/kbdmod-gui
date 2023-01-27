@@ -8,8 +8,6 @@
 using std::vector;
 using std::string;
 
-extern GtkTextBuffer *text_buffer;
-
 /*text selector
 text: text to display before the options
 options_file: file with options
@@ -22,12 +20,10 @@ extern string textSelector(string text, string options_file, string additional_o
 extern string textSelector(string text, vector<string> options);
 
 //print to gui
-inline void Gprint(string text) {
-    gtk_text_buffer_insert_at_cursor(text_buffer, text.c_str(), -1);
-}
-inline void Gprintln(string text) {
-    gtk_text_buffer_insert_at_cursor(text_buffer, (text + " \n").c_str(), -1);
-}
+extern void Gprintln(string text);
+extern void Gprint(string text);
 
-//input from gui
+//input from gui text is not allowed to be multiline last line has to be empty
 extern string Ginput(string text = "");
+
+extern void IO_quit_callback(GtkWidget *widget, gpointer data);

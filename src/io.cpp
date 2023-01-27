@@ -3,7 +3,12 @@
 gboolean input_ready;
 string input;
 
-string textSelector(string text, string options_file, string additional_option = "") {
+extern GtkTextBuffer *text_buffer;
+extern GtkWidget *text_field;
+
+
+
+string textSelector(string text, string options_file, string additional_option) {
     //load options from file
     std::ifstream options(options_file);
     //error if file not found
@@ -30,15 +35,20 @@ string textSelector(string text, string options_file, string additional_option =
 
 string textSelector(string text, vector<string> options) {
     //add text to text field
-    gtk_text_buffer_insert_at_cursor(text_buffer, text.c_str(), -1);
-    //create selection options in the text field
+    Gprintln(text);
     for (int i = 0; i < options.size(); i++) {
-        gtk_text_buffer_insert_at_cursor(text_buffer, string("(" + std::to_string(i) + ") " + options[i]).c_str(), -1);
+        Gprintln("(" + std::to_string(i) + ") " + options[i]);
     }
-    //get user from text field
-    gtk_text_buffer_insert_at_cursor(text_buffer, "Enter the number of the option you want to use: ", -1);    
     //parse to int
-    int option_number = std::stoi(gtk_text_buffer_get_text(text_buffer, 0, 0, FALSE));
+    int option_number;
+    string input_text;
+    try{
+        input_text = Ginput("Enter the number of the option you want to use: ");
+        option_number = std::stoi(input_text);
+    }catch (std::invalid_argument& e) {
+        Gprintln("\nError: " + string(e.what()) + "\n input: " + input_text);
+        return textSelector(text, options);
+    }
     //check if number is valid
     if (option_number >= options.size()) {
         throw std::runtime_error("Error: Invalid number.");
@@ -46,16 +56,50 @@ string textSelector(string text, vector<string> options) {
     return options[option_number];
 }
 
-string Ginput(string text = "") {
-    gtk_text_buffer_insert_at_cursor(text_buffer, text.c_str(), -1);
-    input_ready = false;
-    while (!input_ready) {
-        gtk_main_iteration();
+void Ginput_callback(GtkWidget *widget, gpointer data) {
+    GtkTextView* text_view = (GtkTextView*) data;
+    GtkTextIter start, end;
+    gtk_text_buffer_get_start_iter(text_buffer, &start);
+    gtk_text_buffer_get_end_iter(text_buffer, &end);
+    gchar* text = gtk_text_buffer_get_text(text_buffer, &start, &end, FALSE);
+    //check if last charachter is a new line
+    if (text[strlen(text) - 1] == '\n') {
+        g_free(text);
+        return;
     }
+    gchar** lines = g_strsplit(text, "\n", -1);
+    input = g_strdup(lines[g_strv_length(lines) - 1]);
+    g_free(text);
+    g_strfreev(lines);
+    input_ready = TRUE;
+}
+
+string Ginput(string text) {
+    //if text is multiline print error
+    if (text.find("\n") != std::string::npos) {
+        Gprintln("Error: Ginput does not support multiline text.");
+    }else{
+        Gprint(text);
+    }
+
+    input_ready = false;
+    g_signal_connect(text_buffer, "changed", G_CALLBACK(Ginput_callback), text_field);
+    while (!input_ready) {
+        g_main_context_iteration(NULL, TRUE);
+    }
+    //remove text from input
+    input.erase(0, text.length());
     return input;
 }
 
-void Ginput_callback(GtkWidget *widget, gpointer data) {
-    input = gtk_entry_get_text(GTK_ENTRY(widget));
-    input_ready = true;
+//print to gui
+void Gprint(string text) {
+    gtk_text_buffer_insert_at_cursor(text_buffer, text.c_str(), -1);
+}
+void Gprintln(string text) {
+    gtk_text_buffer_insert_at_cursor(text_buffer, (text + " \n").c_str(), -1);
+}
+
+void IO_quit_callback(GtkWidget *widget, gpointer data) {
+    input_ready = TRUE;
 }

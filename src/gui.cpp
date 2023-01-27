@@ -9,6 +9,10 @@ void activate(GtkApplication *app, gpointer user_data) {
 
 }
 
+void quit_callback(GtkWidget *widget, gpointer data) {
+    IO_quit_callback(widget, data);
+}
+
 string getDeviceName() {
     //inform about the reason for admin rights
     gtk_text_buffer_insert_at_cursor(text_buffer, "Superuser rights are required to access the libinput device names.\n", -1);
@@ -36,10 +40,12 @@ string getDeviceName() {
             throw std::runtime_error("Error: Keyboard not found.");
         }
     }
+
+    return keyboard_name;
     //check if keyboard is available
-    if (system("shell/pullKeyboard.sh") == 0) {
-        loadKeyboard(keyboard_name);
-    }else{
-        createKeyboard(keyboard_name);
-    }
+    //if (system("shell/pullKeyboard.sh") == 0) {
+    //    loadKeyboard(keyboard_name);
+    //}else{
+    //    createKeyboard(keyboard_name);
+    //}
 }
