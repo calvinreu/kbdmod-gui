@@ -7,8 +7,6 @@ string input;
 extern GtkTextBuffer *text_buffer;
 extern GtkWidget *text_field;
 
-
-
 string textSelector(string text, string options_file, string additional_option) {
     //load options from file
     std::ifstream options(options_file);
@@ -94,6 +92,10 @@ string Ginput(string text) {
     //remove text from input
     input.erase(0, text.length());
     return input;
+}
+
+void Gclear() {
+    gtk_text_buffer_set_text(text_buffer, "", -1);
 }
 
 //print to gui

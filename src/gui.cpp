@@ -6,8 +6,27 @@ gboolean quit = false;
 
 void activate(GtkApplication *app, gpointer user_data) {
     init_window(app, user_data);
-    getDeviceName();
+    string device_name = getDeviceName();
+    string reply;
+    int retcode = system(("shell/pullKeyboard.sh " + device_name).c_str());
+    switch (retcode) {
+        case 0:
+            loadKeyboard("/tmp/"+device_name+".xml");
+            break;
+        case 1:
+            reply = Ginput("Warning: no internet connection. Do you want to retry? (y/n) otherwise the keyboard creator will start.");
+            if (reply == "y") {
 
+            }
+            createKeyboard(device_name);
+            break;
+        case 2:
+            Gprintln("Keyboard not found. Creating new keyboard.");
+            createKeyboard(device_name);
+            break;
+        default:
+            throw std::runtime_error("Error: unknown error code when pulling keyboard.");
+    }
 }
 
 void quit_callback(GtkWidget *widget, gpointer data) {
@@ -45,11 +64,7 @@ string getDeviceName() {
         }
     }
 
+    Gclear();
+    Gprintln("Selected device: " + keyboard_name);
     return keyboard_name;
-    //check if keyboard is available
-    //if (system("shell/pullKeyboard.sh") == 0) {
-    //    loadKeyboard(keyboard_name);
-    //}else{
-    //    createKeyboard(keyboard_name);
-    //}
 }

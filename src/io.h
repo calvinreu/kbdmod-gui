@@ -26,4 +26,7 @@ extern void Gprint(string text);
 //input from gui text is not allowed to be multiline last line has to be empty
 extern string Ginput(string text = "");
 
+//clear
+extern void Gclear();
+
 extern void IO_quit_callback(GtkWidget *widget, gpointer data);
