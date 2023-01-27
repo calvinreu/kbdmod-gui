@@ -49,6 +49,8 @@ string textSelector(string text, vector<string> options) {
         //check if program is running
         if (quit)
             return "";
+        //try again
+        Gclear();
         return textSelector(text, options);
     }
     //check if number is valid
@@ -89,6 +91,7 @@ string Ginput(string text) {
     while (!input_ready) {
         g_main_context_iteration(NULL, TRUE);
     }
+    g_signal_handlers_disconnect_by_data(text_buffer, text_field);
     //remove text from input
     input.erase(0, text.length());
     return input;
