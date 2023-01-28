@@ -11,22 +11,86 @@ inline string device_to_file(string device) {
 }
 
 void KeyboardBaseboard::drawKeyboard() {
-    //clear keyboard
-    clearKeyboard();
     //draw rows
-    for (int i = 0; i < keyboard.rows.size(); i++)
-        drawRow(i);
+    for (int i = 0; i < keyboard.rows.size(); i++) {
+        //draw row
+        drawRowFrom(i);
+    }  
 }
 
 void KeyboardBaseboard::clearKeyboard() {
     //remove all buttons
-    GList *children, *iter;
-    children = (GTK_EVENT_CONTROLLER(keyboard_space));
-    for (iter = children; iter != NULL; iter = g_list_next(iter))
-        gtk_container_remove(GTK_CONTAINER(keyboard_space), GTK_WIDGET(iter->data));
-    g_list_free(children);
+    for (auto &button : buttonMap) {
+        gtk_widget_unrealize(button.first);
+    }
     //clear button map
     buttonMap.clear();
+}
+
+void KeyboardBaseboard::redrawKeyboard() {
+    //clear keyboard
+    clearKeyboard();
+    //draw keyboard
+    drawKeyboard();
+}
+
+void KeyboardBaseboard::drawRowFrom(int row, int from) {
+    //get start position
+    float y = marginH;
+    for (int i = 0; i < row; i++)
+        y += keyboard.rows[i].height * keyboard.scale;
+    
+    float x = marginW;
+    for (int i = 0; i < from; i++)
+        x += keyboard.rows[row].keys[i].width * keyboard.scale;
+    
+    //draw keys
+    for (int i = from; i < keyboard.rows[row].keys.size(); i++) {
+        //create button
+        GtkWidget *button = gtk_button_new();
+        //calc size
+        int width = (keyboard.rows[row].keys[i].width * keyboard.scale)-marginW;
+        int height = (keyboard.rows[row].height * keyboard.scale)-marginH;
+        //set size
+        gtk_widget_set_size_request(button, width, height);
+        //set position
+        gtk_fixed_put(GTK_FIXED(keyboard_space), button, x, y);
+        //set label
+        gtk_button_set_label(GTK_BUTTON(button), to_string(keyboard.rows[row].keys[i].keyCode).c_str());
+        //set button map
+        buttonMap[button] = {row, i};
+        //set callback
+        g_signal_connect(button, "clicked", G_CALLBACK(keyboard.callback), NULL);
+        //show button
+        gtk_widget_show(button);
+        //update x position
+        x += keyboard.rows[row].keys[i].width * keyboard.scale;
+    }
+}
+
+void KeyboardBaseboard::clearRowFrom(int row, int from) {
+    //iterate over button map
+    for (auto &button : buttonMap) {
+        //check if button is in row
+        if (button.second.row == row && button.second.key >= from) {
+            //remove button
+            gtk_widget_unrealize(button.first);
+        }
+    }
+    //clear button map
+    for (auto it = buttonMap.begin(); it != buttonMap.end();) {
+        if (it->second.row == row && it->second.key >= from)
+            it = buttonMap.erase(it);
+        else
+            ++it;
+    }
+}
+
+void KeyboardBaseboard::redrawRowFrom(int row, int from) {
+    //clear row
+    clearRowFrom(row, from);
+    //draw row
+    drawRowFrom(row, from);
 }
 
 bool KeyboardBaseboard::calculateScale() {
@@ -51,8 +115,10 @@ bool KeyboardBaseboard::calculateScale() {
     return false;
 }
 
-void KeyboardBaseboard::loadKeyboard(string name) {
-    string filename = device_to_file(name);
+void KeyboardBaseboard::loadKeyboard(string name_) {
+    name = name_;
+    callback = key_mapping_callback;
+    string filename = device_to_file(name_);
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Error: could not open file " + filename);
@@ -64,15 +130,12 @@ void KeyboardBaseboard::loadKeyboard(string name) {
         throw std::runtime_error("Error: could not parse file " + filename);
     }
 
-    float totalW = 0;
-    float totalH = 0;
-
     //load rows
     Json::Value rows = root["rows"];
     for (int i = 0; i < rows.size(); i++) {
         Row row;
         row.height = rows[i]["height"].asFloat();
-        totalH += row.height;
+        keyboard.height += row.height;
         row.width = 0;
         //load keys
         Json::Value keys = rows[i]["keys"];
@@ -84,39 +147,56 @@ void KeyboardBaseboard::loadKeyboard(string name) {
             row.width += key.width;
         }
         keyboard.rows.push_back(row);
-        if (row.width > totalW)
-            totalW = row.width;
+        if (row.width > keyboard.width)
+            keyboard.width = row.width;
     }
 
-    //calculate scaling factor
-    //get keyboard size from gui
-    GtkAllocation keyboardSize;
-    gtk_widget_get_allocation(keyboard_space, &keyboardSize);
-    //calculate scaling factor
-    keyboardSize.width = (keyboardSize.width-marginW) / totalW;
-    keyboardSize.height = (keyboardSize.height-marginH) / totalH;
-    if (keyboardSize.width < keyboardSize.height)
-        keyboard.scale = keyboardSize.width;
-    else
-        keyboard.scale = keyboardSize.height;
-
-    //create buttons
-    double y = marginH;
-    int w, h = 0;
-    for (auto i = keyboard.rows.begin(); i != keyboard.rows.end(); i++) {
-        double x = marginW;
-        for (auto j = i->keys.begin(); j != i->keys.end(); j++) {
-            j->button = gtk_button_new_with_label(to_string(j->keyCode).c_str());
-            w = (j->width*keyboard.scale) - marginW;
-            h = (i->height*keyboard.scale) - marginH;
-
-            gtk_widget_set_size_request(j->button, w, h);
-            gtk_fixed_put(GTK_FIXED(keyboard_space), j->button, x, y);
-        }
-        y += i->height*keyboard.scale;
-    }
+    calculateScale();
+    drawKeyboard();
 }
 
-void KeyboardBaseboard::createKeyboard(string name) {
+void KeyboardBaseboard::createKeyboard(string name_) {
+    callback = key_kbcreator_callback;
+    name = name_;
+    //ask for line count
+    int lineCount = 0;
+    lineCount = Ginput<int>("How many rows of keys does your keyboard have?");
+
+    //ask for line height and key count for each line
+    for (int i = 0; i < lineCount; i++) {
+        Row row;
+        //ask for line height
+        row.height = Ginput<int>("What is the height of row " + to_string(i+1) + "?");
+        keyboard.height += row.height;
+        row.width = 0;
+        //ask for key count
+        int keyCount = 0;
+        keyCount = Ginput<int>("How many keys does row " + to_string(i+1) + " have?");
+        //set row width to key count
+        row.width = keyCount;
+        //init with keys of width 1
+        for (int j = 0; j < keyCount; j++) {
+            Key key;
+            key.width = 1;
+            key.keyCode = 0;
+            row.keys.push_back(key);
+        }
+        keyboard.rows.push_back(row);
+        if (row.width > keyboard.width)
+            keyboard.width = row.width;
+    }
+
+    calculateScale();
+    drawKeyboard();
+    Gprintln("press on the keys to resize them or enter a index row,column");
+}
+
+void key_kbcreator_callback(GtkWidget* widget, gpointer data) {
+    Gclear();
+    //get index
+    KeyboardBaseboard::index index = buttonMap[widget];
+
+    //ask for width
+    int width = Ginput<int>("What is the width of the key?");
 
 }

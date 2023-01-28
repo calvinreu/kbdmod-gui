@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <json/json.h>
+#include "io.h"
 
 using std::map;
 using std::string;
@@ -28,15 +29,14 @@ struct Row
 
 class KeyboardBaseboard
 {
-private:
-    // exeption for one keyslot up down in a row wrap two keys onto the same slot
+public:
     struct index
     {
         // set to -1 if not used
         int row;
         int key;
     };
-
+private:
     string name;
     vector<Row> rows;
     // scaling factor
@@ -45,33 +45,37 @@ private:
     // gtk button map
     map<GtkWidget *, KeyboardBaseboard::index> buttonMap;
 
-    // currently selected
-    Key *selectedKey;
-    GtkWidget *selectedButton;
-    Row *selectedRow;
-
     KeyboardBaseboard::index updownkey;
+
+    // callback func
+    void(*callback)(GtkWidget *, gpointer) = nullptr;
 
     // draw keyboard
     void drawKeyboard();
     // clear keyboard
     void clearKeyboard();
+    // redraw keyboard
+    void redrawKeyboard();
     // draw row
-    void drawRow(int row);
+    void drawRowFrom(int row, int from = 0);
     // clear row
-    void clearRow(int row);
+    void clearRowFrom(int row, int from = 0);
+    // redraw row
+    void redrawRowFrom(int row, int from = 0);
 
     // calculate scaling factor return true if changed
     bool calculateScale();
 
 public:
+    //constructor init with 0
+    KeyboardBaseboard();
+    //destructor
+    ~KeyboardBaseboard();
+
     void loadKeyboard(string name);
     void createKeyboard(string name);
 
-    // select key when clicked as callback function
-    void selectKey(GtkWidget *widget, gpointer data);
-
-    // set selected key keycode
+        // set selected key keycode
     void setKeyCode(int keyCode);
     // set selected key width(not allowed on updownkey if present)
     float setKeyWidth(float width);
@@ -83,3 +87,8 @@ public:
     // save keyboard to file
     void saveKeyboard(string name);
 };
+
+// select key when clicked as callback function
+extern void key_kbcreator_callback(GtkWidget *widget, gpointer data);
+//has to be moved to mappings
+extern void key_mapping_callback(GtkWidget *widget, gpointer data);

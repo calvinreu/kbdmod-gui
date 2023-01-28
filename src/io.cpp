@@ -97,6 +97,32 @@ string Ginput(string text) {
     return input;
 }
 
+template <typename T>
+T Ginput(string text) {
+    try {
+        string input = Ginput(text);
+    }catch (std::runtime_error& e) {
+        throw e;
+    }
+
+    T value;
+    try {
+        value = std::stoi(input);
+    }catch (std::invalid_argument& e) {
+        Gprintln("\nError: " + string(e.what()) + "\n input: " + input);
+        //try again
+        return Ginput<T>(text);
+    }
+    return value;
+}
+
+string GinputClear(string text) {
+    Gclear();
+    string response = Ginput(text);
+    Gclear();
+    return response;
+}
+
 void Gclear() {
     gtk_text_buffer_set_text(text_buffer, "", -1);
 }
