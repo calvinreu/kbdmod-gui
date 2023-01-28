@@ -11,7 +11,7 @@ void activate(GtkApplication *app, gpointer user_data) {
     int retcode = system(("shell/pullKeyboard.sh " + device_name).c_str());
     switch (retcode) {
         case 0:
-            loadKeyboard("/tmp/"+device_name+".xml");
+            loadKeyboard(device_name);
             break;
         case 1:
             reply = Ginput("Warning: no internet connection. Do you want to retry? (y/n) otherwise the keyboard creator will start.");

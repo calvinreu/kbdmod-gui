@@ -4,21 +4,27 @@
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
+#include <json/json.h>
 #include "io.h"
 
 using std::vector;
 using std::string;
+using std::to_string;
 
 struct Key {
     float width;
-    float height;
     int keyCode;
     GtkWidget* button;
 };
 
+struct Row {
+    float height;
+    vector<Key> keys;
+};
+
 struct Keyboard {
     string name;
-    vector<vector<Key>> keys;
+    vector<Row> rows;
     //scaling factor
     float scale;
 };
