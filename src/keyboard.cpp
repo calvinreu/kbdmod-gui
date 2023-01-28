@@ -1,16 +1,57 @@
-#include "gui.h"
+#include "keyboard.h"
 
-extern Keyboard keyboard;
+extern KeyboardBaseboard keyboard;
 extern GtkWidget *keyboard_space;
 
 const uint marginW = 3;
 const uint marginH = 3;
 
-string device_to_file(string device) {
+inline string device_to_file(string device) {
     return "~/.kbdmod/boards/" + device + ".json";
 }
 
-void loadKeyboard(string name) {
+void KeyboardBaseboard::drawKeyboard() {
+    //clear keyboard
+    clearKeyboard();
+    //draw rows
+    for (int i = 0; i < keyboard.rows.size(); i++)
+        drawRow(i);
+}
+
+void KeyboardBaseboard::clearKeyboard() {
+    //remove all buttons
+    GList *children, *iter;
+    children = (GTK_EVENT_CONTROLLER(keyboard_space));
+    for (iter = children; iter != NULL; iter = g_list_next(iter))
+        gtk_container_remove(GTK_CONTAINER(keyboard_space), GTK_WIDGET(iter->data));
+    g_list_free(children);
+    //clear button map
+    buttonMap.clear();
+}
+
+bool KeyboardBaseboard::calculateScale() {
+    //get keyboard size from gui
+    GtkAllocation keyboardSize;
+    gtk_widget_get_allocation(keyboard_space, &keyboardSize);
+
+    //calculate scaling factor
+    float scalew = (keyboardSize.width-marginW) / keyboard.width;
+    float scaleh = (keyboardSize.height-marginH) / keyboard.height;
+    float scale_ = 0;
+    //set scale to the smaller one to fit the keyboard in the window
+    if (scalew < scaleh)
+        scale_ = keyboardSize.width;
+    else
+        scale_ = keyboardSize.height;
+
+    if (scale_ != keyboard.scale) {
+        keyboard.scale = scale_;
+        return true;
+    }
+    return false;
+}
+
+void KeyboardBaseboard::loadKeyboard(string name) {
     string filename = device_to_file(name);
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -32,7 +73,7 @@ void loadKeyboard(string name) {
         Row row;
         row.height = rows[i]["height"].asFloat();
         totalH += row.height;
-        float tmpW = 0;
+        row.width = 0;
         //load keys
         Json::Value keys = rows[i]["keys"];
         for (int j = 0; j < keys.size(); j++) {
@@ -40,11 +81,11 @@ void loadKeyboard(string name) {
             key.width = keys[j]["w"].asFloat();
             key.keyCode = keys[j]["kc"].asInt();
             row.keys.push_back(key);
-            tmpW += key.width;
+            row.width += key.width;
         }
         keyboard.rows.push_back(row);
-        if (tmpW > totalW)
-            totalW = tmpW;
+        if (row.width > totalW)
+            totalW = row.width;
     }
 
     //calculate scaling factor
@@ -76,6 +117,6 @@ void loadKeyboard(string name) {
     }
 }
 
-void createKeyboard(string name) {
+void KeyboardBaseboard::createKeyboard(string name) {
 
 }

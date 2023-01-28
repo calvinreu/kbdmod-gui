@@ -11,24 +11,6 @@ using std::vector;
 using std::string;
 using std::to_string;
 
-struct Key {
-    float width;
-    int keyCode;
-    GtkWidget* button;
-};
-
-struct Row {
-    float height;
-    vector<Key> keys;
-};
-
-struct Keyboard {
-    string name;
-    vector<Row> rows;
-    //scaling factor
-    float scale;
-};
-
 extern Keyboard keyboard;
 
 //activation func
