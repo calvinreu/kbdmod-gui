@@ -3,29 +3,44 @@
 extern const string ProgramName = "KbdMod";
 extern GtkTextBuffer *text_buffer;
 gboolean quit = false;
+extern KeyboardBaseboard keyboard;
 
 void activate(GtkApplication *app, gpointer user_data) {
     init_window(app, user_data);
     string device_name = getDeviceName();
     string reply;
+    #ifndef DEBUG
     int retcode = system(("shell/pullKeyboard.sh " + device_name).c_str());
+    if (WIFEXITED(retcode)) {
+        retcode = WEXITSTATUS(retcode);
+    } else {
+        retcode = 3;
+    }
+    #else
+    int retcode = 2;
+    #endif
+
     switch (retcode) {
         case 0:
-            loadKeyboard(device_name);
+            keyboard.loadKeyboard(device_name);
             break;
         case 1:
             reply = Ginput("Warning: no internet connection. Do you want to retry? (y/n) otherwise the keyboard creator will start.");
             if (reply == "y") {
 
             }
-            createKeyboard(device_name);
+            keyboard.createKeyboard(device_name);
             break;
         case 2:
             Gprintln("Keyboard not found. Creating new keyboard.");
-            createKeyboard(device_name);
+            keyboard.createKeyboard(device_name);
+            break;
+        case 3:
+            Gprintln("pull process failed. Creating new keyboard.");
+            keyboard.createKeyboard(device_name);
             break;
         default:
-            throw std::runtime_error("Error: unknown error code when pulling keyboard.");
+            throw std::runtime_error("Error: " + to_string(retcode) + " is a unknown error code when pulling keyboard.");
     }
 }
 

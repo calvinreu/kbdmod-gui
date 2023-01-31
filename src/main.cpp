@@ -8,9 +8,9 @@ using std::string;
 #define VERSION "build error version unknown"
 #endif
 
-extern Keyboard keyboard;
+KeyboardBaseboard keyboard;
 extern GtkWidget *text_field;
-extern GtkEventController *keyboard_space;
+extern GtkWidget *keyboard_space;
 extern GtkTextBuffer *text_buffer;
 
 

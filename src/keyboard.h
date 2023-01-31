@@ -1,3 +1,4 @@
+#pragma once
 #include <map>
 #include <vector>
 #include <string>
@@ -75,7 +76,7 @@ public:
     void loadKeyboard(string name);
     void createKeyboard(string name);
 
-        // set selected key keycode
+    // set selected key keycode
     void setKeyCode(int keyCode);
     // set selected key width(not allowed on updownkey if present)
     float setKeyWidth(float width);
@@ -85,7 +86,10 @@ public:
     void setKeyColor(string color);
 
     // save keyboard to file
-    void saveKeyboard(string name);
+    void saveKeyboard();
+
+    friend void key_kbcreator_callback(GtkWidget *widget, gpointer data);
+    friend void key_mapping_callback(GtkWidget *widget, gpointer data);
 };
 
 // select key when clicked as callback function

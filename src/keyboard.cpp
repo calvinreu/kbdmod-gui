@@ -10,6 +10,21 @@ inline string device_to_file(string device) {
     return "~/.kbdmod/boards/" + device + ".json";
 }
 
+KeyboardBaseboard::KeyboardBaseboard() {
+    //set default values
+    name = "";
+    scale = 0;
+    width = 0;
+    height = 0;
+    updownkey.row = -1;
+    updownkey.key = -1;
+}
+
+KeyboardBaseboard::~KeyboardBaseboard() {
+    //clear keyboard
+    clearKeyboard();
+}
+
 void KeyboardBaseboard::drawKeyboard() {
     //draw rows
     for (int i = 0; i < keyboard.rows.size(); i++) {
@@ -21,7 +36,7 @@ void KeyboardBaseboard::drawKeyboard() {
 void KeyboardBaseboard::clearKeyboard() {
     //remove all buttons
     for (auto &button : buttonMap) {
-        gtk_widget_unrealize(button.first);
+        gtk_widget_unparent(button.first);
     }
     //clear button map
     buttonMap.clear();
@@ -74,7 +89,7 @@ void KeyboardBaseboard::clearRowFrom(int row, int from) {
         //check if button is in row
         if (button.second.row == row && button.second.key >= from) {
             //remove button
-            gtk_widget_unrealize(button.first);
+            gtk_fixed_remove(GTK_FIXED(keyboard_space), button.first);
         }
     }
     //clear button map
@@ -104,9 +119,9 @@ bool KeyboardBaseboard::calculateScale() {
     float scale_ = 0;
     //set scale to the smaller one to fit the keyboard in the window
     if (scalew < scaleh)
-        scale_ = keyboardSize.width;
+        scale_ = scalew;
     else
-        scale_ = keyboardSize.height;
+        scale_ = scaleh; 
 
     if (scale_ != keyboard.scale) {
         keyboard.scale = scale_;
@@ -191,12 +206,63 @@ void KeyboardBaseboard::createKeyboard(string name_) {
     Gprintln("press on the keys to resize them or enter a index row,column");
 }
 
+void KeyboardBaseboard::saveKeyboard() {
+    //create json
+    Json::Value root;
+    Json::Value rows;
+    for (int i = 0; i < keyboard.rows.size(); i++) {
+        Json::Value row;
+        row["height"] = keyboard.rows[i].height;
+        Json::Value keys;
+        for (int j = 0; j < keyboard.rows[i].keys.size(); j++) {
+            Json::Value key;
+            key["w"] = keyboard.rows[i].keys[j].width;
+            key["kc"] = keyboard.rows[i].keys[j].keyCode;
+            keys.append(key);
+        }
+        row["keys"] = keys;
+        rows.append(row);
+    }
+    root["rows"] = rows;
+
+    //write json to file
+    string filename = device_to_file(name);
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Error: could not open file " + filename);
+    }
+    file << root;
+    file.close();
+}
+
 void key_kbcreator_callback(GtkWidget* widget, gpointer data) {
     Gclear();
     //get index
-    KeyboardBaseboard::index index = buttonMap[widget];
+    auto index = keyboard.buttonMap[widget];
 
     //ask for width
-    int width = Ginput<int>("What is the width of the key?");
+    float width = Ginput<float>("What is the width of the key?");
+    //calc change
+    width -= keyboard.rows[index.row].keys[index.key].width;
 
+    //set row width
+    keyboard.rows[index.row].width += width;
+    //set width
+    keyboard.rows[index.row].keys[index.key].width += width;
+
+    //check if row width is bigger than keyboard width if so recalculate scale
+    if (keyboard.rows[index.row].width > keyboard.width) {
+        keyboard.width = keyboard.rows[index.row].width;
+        if(keyboard.calculateScale()) {
+            keyboard.redrawKeyboard();
+            return;
+        }
+    }
+    keyboard.redrawRowFrom(index.row, index.key);
+    Gclear();
+}
+
+void key_mapping_callback(GtkWidget* widget, gpointer data) {
+    Gclear();
+    
 }

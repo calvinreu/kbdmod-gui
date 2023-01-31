@@ -1,44 +1,40 @@
 #include "gui.h"
 
-GtkWidget *window;
-GtkWidget *text_field;
-GtkEventController *keyboard_space;
+GtkWidget *keyboard_space;
 //text buffer
 GtkTextBuffer *text_buffer;
-GtkWidget *box;
-GtkWidget *scroll;
+//text field
+GtkWidget *text_field;
 
 const string ProgramName = "KbdMod";
 
 void init_window(GtkApplication *app, gpointer user_data) {
 
     //create window
-    window = gtk_application_window_new(app);
+    GtkWindow* window = GTK_WINDOW(gtk_application_window_new(app));
     if(window==NULL)
     {
         throw std::runtime_error("Error: Failed to create the window.");
     }
-    gtk_window_set_title(GTK_WINDOW(window), ProgramName.c_str());
-    gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
+    gtk_window_set_title(window, ProgramName.c_str());
+    gtk_window_set_default_size(window, 800, 600);
 
     //conect signals
     g_signal_connect(window, "destroy", G_CALLBACK(quit_callback), NULL);
 
-    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    if(box==NULL)
+    //create main box
+    GtkWidget* main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    if(main_box==NULL)
     {
-        throw std::runtime_error("Error: Failed to create the box container.");
+        throw std::runtime_error("Error: Failed to create the main box.");
     }
-    gtk_window_set_child(GTK_WINDOW(window), box);
 
-    // controller for keyboard_space
-    keyboard_space = gtk_event_controller_key_new();
-    gtk_widget_add_controller(box, keyboard_space);
+    keyboard_space = gtk_fixed_new();
     if(keyboard_space==NULL)
     {
         throw std::runtime_error("Error: Failed to create the keyboard space.");
     }
-    gtk_widget_set_size_request(box, -1, 300);
+    gtk_widget_set_size_request(keyboard_space, -1, -1);
 
     // Text field
     text_field = gtk_text_view_new();
@@ -57,16 +53,20 @@ void init_window(GtkApplication *app, gpointer user_data) {
 
     
     //make it scrollable
-    scroll = gtk_scrolled_window_new();
+    GtkScrolledWindow* scroll = GTK_SCROLLED_WINDOW(gtk_scrolled_window_new());
     //scrollbox size request
-    gtk_widget_set_size_request(scroll, -1, 300);
-    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), text_field);
-
-    //add to box
-    gtk_box_append(GTK_BOX(box), scroll);
+    gtk_widget_set_size_request(GTK_WIDGET(scroll), -1, 300);
+    gtk_scrolled_window_set_child(scroll, GTK_WIDGET(GTK_TEXT_VIEW(text_field)));
 
     text_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_field));
 
+    //append to main box
+    gtk_box_append(GTK_BOX(main_box), GTK_WIDGET(scroll));
+    gtk_box_append(GTK_BOX(main_box), keyboard_space);
+
+    //append main box to window
+    gtk_window_set_child(window, main_box);
+
     //show window
-    gtk_widget_show(window);
+    gtk_widget_show(GTK_WIDGET(window));
 }

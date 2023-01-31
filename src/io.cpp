@@ -67,12 +67,12 @@ void Ginput_callback(GtkWidget *widget, gpointer data) {
     gtk_text_buffer_get_end_iter(text_buffer, &end);
     gchar* text = gtk_text_buffer_get_text(text_buffer, &start, &end, FALSE);
     //check if last charachter is a new line
-    if (text[strlen(text) - 1] == '\n') {
+    if (text[strlen(text) - 1] != '\n') {
         g_free(text);
         return;
     }
     gchar** lines = g_strsplit(text, "\n", -1);
-    input = g_strdup(lines[g_strv_length(lines) - 1]);
+    input = g_strdup(lines[g_strv_length(lines) - 2]);
     g_free(text);
     g_strfreev(lines);
     input_ready = TRUE;
@@ -87,11 +87,11 @@ string Ginput(string text) {
     }
 
     input_ready = false;
-    g_signal_connect(text_buffer, "changed", G_CALLBACK(Ginput_callback), text_field);
-    while (!input_ready) {
+    g_signal_connect(text_buffer, "changed", G_CALLBACK(Ginput_callback), GTK_TEXT_VIEW(text_field));
+    while (!input_ready && !quit) {
         g_main_context_iteration(NULL, TRUE);
     }
-    g_signal_handlers_disconnect_by_data(text_buffer, text_field);
+    g_signal_handlers_disconnect_by_data(text_buffer, GTK_TEXT_VIEW(text_field));
     //remove text from input
     input.erase(0, text.length());
     return input;
@@ -110,6 +110,9 @@ T Ginput(string text) {
         value = std::stoi(input);
     }catch (std::invalid_argument& e) {
         Gprintln("\nError: " + string(e.what()) + "\n input: " + input);
+        if (quit)
+            return 0;
+
         //try again
         return Ginput<T>(text);
     }
@@ -137,4 +140,13 @@ void Gprintln(string text) {
 
 void IO_quit_callback(GtkWidget *widget, gpointer data) {
     input_ready = TRUE;
+}
+
+//add template args
+int GinputInt (string text) {
+    return Ginput<int>(text);
+}
+
+int GinputFloat (string text) {
+    return Ginput<float>(text);
 }

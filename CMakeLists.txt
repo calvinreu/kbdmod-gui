@@ -25,6 +25,8 @@ add_compile_definitions(VERSION="${VERSION}")
 #link gtk4
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK4 REQUIRED gtk4)
+#add jsoncpp
+pkg_check_modules(JSONCPP REQUIRED jsoncpp)
 
 #set include directories for gtk4
 include_directories( "/usr/include/gtk-4.0" )
@@ -49,4 +51,4 @@ link_directories( "/usr/bin" )
 add_executable( ${PROJECT_NAME} ${SOURCES} )
 
 #link gtk4
-target_link_libraries( ${PROJECT_NAME} ${GTK4_LIBRARIES} )
+target_link_libraries( ${PROJECT_NAME} ${GTK4_LIBRARIES} ${JSONCPP_LIBRARIES} )
