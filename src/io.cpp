@@ -106,8 +106,10 @@ T Ginput(string text) {
     }
 
     try {
-        return std::is_floating_point<T>::value ? std::stof(input) : static_cast<T>(std::stoi(input));
-        Gprintln("Enter width then amount of those keys from left to right. After the line is done enter 0 for width.");
+        if constexpr (std::is_floating_point<T>::value)
+            return std::stof(input);
+        else
+            return static_cast<T>(std::stoi(input));
     }catch (std::invalid_argument& e) {
         Gprintln("\nError: " + string(e.what()) + "\n input: " + input);
         if (quit)
