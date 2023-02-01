@@ -48,22 +48,8 @@ private:
 
     KeyboardBaseboard::index updownkey;
 
-    // callback func
-    void(*callback)(GtkWidget *, gpointer) = nullptr;
-
     // draw keyboard
     void drawKeyboard();
-    // clear keyboard
-    void clearKeyboard();
-    // redraw keyboard
-    void redrawKeyboard();
-    // draw row
-    void drawRowFrom(int row, int from = 0);
-    // clear row
-    void clearRowFrom(int row, int from = 0);
-    // redraw row
-    void redrawRowFrom(int row, int from = 0);
-
     // calculate scaling factor return true if changed
     bool calculateScale();
 
@@ -92,7 +78,4 @@ public:
     friend void key_mapping_callback(GtkWidget *widget, gpointer data);
 };
 
-// select key when clicked as callback function
-extern void key_kbcreator_callback(GtkWidget *widget, gpointer data);
-//has to be moved to mappings
-extern void key_mapping_callback(GtkWidget *widget, gpointer data);
+extern void keyboard_callback(GtkWidget *widget, gpointer data);

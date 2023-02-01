@@ -2,6 +2,7 @@
 
 extern KeyboardBaseboard keyboard;
 extern GtkWidget *keyboard_space;
+extern gboolean quit;
 
 const uint marginW = 3;
 const uint marginH = 3;
@@ -22,19 +23,6 @@ KeyboardBaseboard::KeyboardBaseboard() {
 
 KeyboardBaseboard::~KeyboardBaseboard() {
     //clear keyboard
-    clearKeyboard();
-}
-
-void KeyboardBaseboard::drawKeyboard() {
-    //draw rows
-    for (int i = 0; i < keyboard.rows.size(); i++) {
-        //draw row
-        drawRowFrom(i);
-    }  
-}
-
-void KeyboardBaseboard::clearKeyboard() {
-    //remove all buttons
     for (auto &button : buttonMap) {
         gtk_widget_unparent(button.first);
     }
@@ -42,70 +30,37 @@ void KeyboardBaseboard::clearKeyboard() {
     buttonMap.clear();
 }
 
-void KeyboardBaseboard::redrawKeyboard() {
-    //clear keyboard
-    clearKeyboard();
-    //draw keyboard
-    drawKeyboard();
-}
-
-void KeyboardBaseboard::drawRowFrom(int row, int from) {
-    //get start position
+void KeyboardBaseboard::drawKeyboard() {
     float y = marginH;
-    for (int i = 0; i < row; i++)
-        y += keyboard.rows[i].height * keyboard.scale;
-    
-    float x = marginW;
-    for (int i = 0; i < from; i++)
-        x += keyboard.rows[row].keys[i].width * keyboard.scale;
-    
-    //draw keys
-    for (int i = from; i < keyboard.rows[row].keys.size(); i++) {
-        //create button
-        GtkWidget *button = gtk_button_new();
-        //calc size
-        int width = (keyboard.rows[row].keys[i].width * keyboard.scale)-marginW;
-        int height = (keyboard.rows[row].height * keyboard.scale)-marginH;
-        //set size
-        gtk_widget_set_size_request(button, width, height);
-        //set position
-        gtk_fixed_put(GTK_FIXED(keyboard_space), button, x, y);
-        //set label
-        gtk_button_set_label(GTK_BUTTON(button), to_string(keyboard.rows[row].keys[i].keyCode).c_str());
-        //set button map
-        buttonMap[button] = {row, i};
-        //set callback
-        g_signal_connect(button, "clicked", G_CALLBACK(keyboard.callback), NULL);
-        //show button
-        gtk_widget_show(button);
-        //update x position
-        x += keyboard.rows[row].keys[i].width * keyboard.scale;
-    }
-}
-
-void KeyboardBaseboard::clearRowFrom(int row, int from) {
-    //iterate over button map
-    for (auto &button : buttonMap) {
-        //check if button is in row
-        if (button.second.row == row && button.second.key >= from) {
-            //remove button
-            gtk_fixed_remove(GTK_FIXED(keyboard_space), button.first);
+    int width, height;
+    //draw rows
+    for (int i = 0; i < keyboard.rows.size(); i++) {
+        //draw row
+        float x = marginW;
+        height = (keyboard.rows[i].height * keyboard.scale)-marginH;
+        for(int j = 0; j < keyboard.rows[i].keys.size(); j++) {
+            //create button
+            GtkWidget *button = gtk_button_new();
+            //calc size
+            width = (keyboard.rows[i].keys[j].width * keyboard.scale)-marginW;
+            //set size
+            gtk_widget_set_size_request(button, width, height);
+            //set position
+            gtk_fixed_put(GTK_FIXED(keyboard_space), button, x, y);
+            //set label
+            gtk_button_set_label(GTK_BUTTON(button), to_string(keyboard.rows[i].keys[j].keyCode).c_str());
+            //set button map
+            buttonMap[button] = {i, j};
+            //set callback
+            g_signal_connect(button, "clicked", G_CALLBACK(keyboard_callback), NULL);
+            //show button
+            gtk_widget_show(button);
+            //update x position
+            x += keyboard.rows[i].keys[j].width * keyboard.scale;
         }
-    }
-    //clear button map
-    for (auto it = buttonMap.begin(); it != buttonMap.end();) {
-        if (it->second.row == row && it->second.key >= from)
-            it = buttonMap.erase(it);
-        else
-            ++it;
-    }
-}
-
-void KeyboardBaseboard::redrawRowFrom(int row, int from) {
-    //clear row
-    clearRowFrom(row, from);
-    //draw row
-    drawRowFrom(row, from);
+        //update y position
+        y += keyboard.rows[i].height * keyboard.scale;
+    }  
 }
 
 bool KeyboardBaseboard::calculateScale() {
@@ -132,7 +87,6 @@ bool KeyboardBaseboard::calculateScale() {
 
 void KeyboardBaseboard::loadKeyboard(string name_) {
     name = name_;
-    callback = key_mapping_callback;
     string filename = device_to_file(name_);
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -171,7 +125,6 @@ void KeyboardBaseboard::loadKeyboard(string name_) {
 }
 
 void KeyboardBaseboard::createKeyboard(string name_) {
-    callback = key_kbcreator_callback;
     name = name_;
     //ask for line count
     int lineCount = 0;
@@ -179,31 +132,59 @@ void KeyboardBaseboard::createKeyboard(string name_) {
 
     //ask for line height and key count for each line
     for (int i = 0; i < lineCount; i++) {
+        Gclear();
+        Gprintln("Current row: " + to_string(i+1));
+
         Row row;
         //ask for line height
-        row.height = Ginput<int>("What is the height of row " + to_string(i+1) + "?");
+        row.height = Ginput<float>("What is the height of row " + to_string(i+1) + "?");
+        Gprintln("Enter width then amount of those keys from left to right. After the line is done enter 0 for width.");
         keyboard.height += row.height;
         row.width = 0;
-        //ask for key count
-        int keyCount = 0;
-        keyCount = Ginput<int>("How many keys does row " + to_string(i+1) + " have?");
-        //set row width to key count
-        row.width = keyCount;
-        //init with keys of width 1
-        for (int j = 0; j < keyCount; j++) {
-            Key key;
-            key.width = 1;
-            key.keyCode = 0;
-            row.keys.push_back(key);
+        float width = 1;
+        while (width != 0.0 && !quit) {
+            //ask for widthxkey count
+            width = Ginput<float>("Width of next key(s)?");
+            int keyCount = Ginput<int>("How many keys with this width?");
+
+            for (int j = 0; j < keyCount; j++) {
+                Key key;
+                key.width = width;
+                key.keyCode = 0;
+                row.keys.push_back(key);
+            }
+
+            #ifdef DEBUG
+            Gprintln("Width: " + to_string(width));
+            Gprintln("Key count: " + to_string(keyCount));
+            #endif
         }
+
         keyboard.rows.push_back(row);
         if (row.width > keyboard.width)
             keyboard.width = row.width;
     }
 
+    //init keycodes
+    system("shell/getKeycodes.bin > /tmp/keycodes.txt");
+    //load keycodes
+    std::ifstream file("/tmp/keycodes.txt");
+    if (!file.is_open()) {
+        throw std::runtime_error("Error: could not open file /tmp/keycodes.txt");
+    }
+    //loop through keycodes and set them to the keys left to right top to bottom
+    int keycode = 0;
+    for (int i = 0; i < keyboard.rows.size(); i++) {
+        for (int j = 0; j < keyboard.rows[i].keys.size(); j++) {
+            file >> keycode;
+            keyboard.rows[i].keys[j].keyCode = keycode;
+        }
+    }
+    
     calculateScale();
     drawKeyboard();
-    Gprintln("press on the keys to resize them or enter a index row,column");
+    //save keyboard
+    saveKeyboard();
 }
 
 void KeyboardBaseboard::saveKeyboard() {
@@ -235,34 +216,6 @@ void KeyboardBaseboard::saveKeyboard() {
     file.close();
 }
 
-void key_kbcreator_callback(GtkWidget* widget, gpointer data) {
-    Gclear();
-    //get index
-    auto index = keyboard.buttonMap[widget];
+void keyboard_callback(GtkWidget *widget, gpointer data) {
 
-    //ask for width
-    float width = Ginput<float>("What is the width of the key?");
-    //calc change
-    width -= keyboard.rows[index.row].keys[index.key].width;
-
-    //set row width
-    keyboard.rows[index.row].width += width;
-    //set width
-    keyboard.rows[index.row].keys[index.key].width += width;
-
-    //check if row width is bigger than keyboard width if so recalculate scale
-    if (keyboard.rows[index.row].width > keyboard.width) {
-        keyboard.width = keyboard.rows[index.row].width;
-        if(keyboard.calculateScale()) {
-            keyboard.redrawKeyboard();
-            return;
-        }
-    }
-    keyboard.redrawRowFrom(index.row, index.key);
-    Gclear();
-}
-
-void key_mapping_callback(GtkWidget* widget, gpointer data) {
-    Gclear();
-    
 }
