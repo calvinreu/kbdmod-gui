@@ -106,10 +106,11 @@ T Ginput(string text) {
     }
 
     try {
-        if constexpr (std::is_floating_point<T>::value)
+        if constexpr (std::is_floating_point<T>::value) {
             return std::stof(input);
-        else
+        }else{
             return static_cast<T>(std::stoi(input));
+        }
     }catch (std::invalid_argument& e) {
         Gprintln("\nError: " + string(e.what()) + "\n input: " + input);
         if (quit)

@@ -1,6 +1,7 @@
 #include <string>
 #include <cstdlib>
 #include "gui.h"
+#include <locale>
 
 using std::string;
 
@@ -18,7 +19,7 @@ int main(int argc, char *argv[])
 {
     GtkApplication *app;
     int status;
-
+    std::setlocale(LC_NUMERIC, nullptr);
     //create application
     app = gtk_application_new("org.gtk.example", G_APPLICATION_DEFAULT_FLAGS);
     if(app==NULL)

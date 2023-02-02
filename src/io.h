@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <fstream>
 #include <sstream>
+#include <locale>
+#include <algorithm>
 
 using std::vector;
 using std::string;
