@@ -1,0 +1,3 @@
+- JOB: "intercept -g $DEVNODE | keycodegrab.bin keyNum"
+  DEVICE:
+    NAME: "KBDName"
