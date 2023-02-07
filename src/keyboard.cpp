@@ -1,10 +1,5 @@
 #include "keyboard.h"
 
-#ifdef DEBUG
-#define KEYCODEGRAB ../keycodegrab
-#else
-#define KEYCODEGRAB keycodegrab
-#endif
 
 extern KeyboardBaseboard keyboard;
 extern GtkWidget *keyboard_space;
@@ -168,9 +163,9 @@ void KeyboardBaseboard::createKeyboard(string name_) {
     }
 
     //init keycodes
-    system("KEYCODEGRAB/keycodegrab.sh");
+    system("keycodegrab/keycodegrab.sh");
     //load keycodes
-    std::ifstream file("KEYCODEGRAB/keycodes.txt");
+    std::ifstream file("keycodegrab/keycodes.txt");
     if (!file.is_open()) {
         throw std::runtime_error("Error: could not open file keycodegrab/keycodes.txt");
     }
