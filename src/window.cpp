@@ -1,5 +1,9 @@
 #include "gui.h"
 
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 GtkWidget *keyboard_space;
 //text buffer
 GtkTextBuffer *text_buffer;
@@ -29,13 +33,6 @@ void init_window(GtkApplication *app, gpointer user_data) {
         throw std::runtime_error("Error: Failed to create the main box.");
     }
 
-    keyboard_space = gtk_fixed_new();
-    if(keyboard_space==NULL)
-    {
-        throw std::runtime_error("Error: Failed to create the keyboard space.");
-    }
-    gtk_widget_set_size_request(keyboard_space, -1, -1);
-
     // Text field
     text_field = gtk_text_view_new();
     if(text_field==NULL)
@@ -59,6 +56,13 @@ void init_window(GtkApplication *app, gpointer user_data) {
     gtk_scrolled_window_set_child(scroll, GTK_WIDGET(GTK_TEXT_VIEW(text_field)));
 
     text_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(text_field));
+    
+    keyboard_space = gtk_fixed_new();
+    if(keyboard_space==NULL)
+    {
+        throw std::runtime_error("Error: Failed to create the keyboard space.");
+    }
+    gtk_widget_set_size_request(keyboard_space, -1, -1);
 
     //append to main box
     gtk_box_append(GTK_BOX(main_box), GTK_WIDGET(scroll));

@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     int numKeys = atoi(argv[1]);
     //create output file
     std::ofstream outputFile;
-    outputFile.open("keylog.txt");
+    outputFile.open("keycodes.txt");
     //check if output file is open
     if(!outputFile.is_open()) {
         std::cout << "Error opening output file" << std::endl;

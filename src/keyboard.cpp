@@ -1,5 +1,11 @@
 #include "keyboard.h"
 
+#ifdef DEBUG
+#define KEYCODEGRAB ../keycodegrab
+#else
+#define KEYCODEGRAB keycodegrab
+#endif
+
 extern KeyboardBaseboard keyboard;
 extern GtkWidget *keyboard_space;
 extern gboolean quit;
@@ -153,11 +159,7 @@ void KeyboardBaseboard::createKeyboard(string name_) {
                 key.keyCode = 0;
                 row.keys.push_back(key);
             }
-
-            #ifdef DEBUG
-            Gprintln("Width: " + to_string(width));
-            Gprintln("Key count: " + to_string(keyCount));
-            #endif
+            row.width += width * keyCount;
         }
 
         keyboard.rows.push_back(row);
@@ -166,11 +168,11 @@ void KeyboardBaseboard::createKeyboard(string name_) {
     }
 
     //init keycodes
-    system("shell/getKeycodes.bin > /tmp/keycodes.txt");
+    system("KEYCODEGRAB/keycodegrab.sh");
     //load keycodes
-    std::ifstream file("/tmp/keycodes.txt");
+    std::ifstream file("KEYCODEGRAB/keycodes.txt");
     if (!file.is_open()) {
-        throw std::runtime_error("Error: could not open file /tmp/keycodes.txt");
+        throw std::runtime_error("Error: could not open file keycodegrab/keycodes.txt");
     }
     //loop through keycodes and set them to the keys left to right top to bottom
     int keycode = 0;
