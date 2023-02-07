@@ -32,6 +32,10 @@ KeyboardBaseboard::~KeyboardBaseboard() {
 }
 
 void KeyboardBaseboard::drawKeyboard() {
+    //request size
+    gtk_widget_set_size_request(keyboard_space, -1, -1);
+    //calculate scale
+    calculateScale();
     float y = marginH;
     int width, height;
     //draw rows
@@ -178,7 +182,6 @@ void KeyboardBaseboard::createKeyboard(string name_) {
         }
     }
     
-    calculateScale();
     drawKeyboard();
     //save keyboard
     saveKeyboard();
@@ -205,6 +208,8 @@ void KeyboardBaseboard::saveKeyboard() {
 
     //write json to file
     string filename = device_to_file(name);
+    //create file
+    system(("touch " + filename).c_str());
     std::ofstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Error: could not open file " + filename);
