@@ -9,7 +9,13 @@ const uint marginW = 3;
 const uint marginH = 3;
 
 inline string device_to_file(string device) {
+    #ifdef DEBUG
+    //create to tmp dir
+    system("mkdir -p /tmp/boards");
+    return "/tmp/boards/" + device + ".json";
+    #else
     return "~/.kbdmod/boards/" + device + ".json";
+    #endif
 }
 
 KeyboardBaseboard::KeyboardBaseboard() {
@@ -209,7 +215,7 @@ void KeyboardBaseboard::saveKeyboard() {
     //write json to file
     string filename = device_to_file(name);
     //create file
-    system(("touch " + filename).c_str());
+    system(("touch \'" + filename + "\'").c_str());
     std::ofstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Error: could not open file " + filename);

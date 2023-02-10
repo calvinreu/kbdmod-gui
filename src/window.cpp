@@ -62,7 +62,7 @@ void init_window(GtkApplication *app, gpointer user_data) {
     {
         throw std::runtime_error("Error: Failed to create the keyboard space.");
     }
-    gtk_widget_set_size_request(keyboard_space, -1, -1);
+    gtk_widget_set_size_request(keyboard_space, -1, 400);
 
     //append to main box
     gtk_box_append(GTK_BOX(main_box), GTK_WIDGET(scroll));

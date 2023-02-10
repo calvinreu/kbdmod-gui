@@ -17,7 +17,7 @@ sed -i "s/keyNum/$1/g" cpudevmon.yml
 sed -i "s/KBDName/$2/g" cpudevmon.yml
 
 #stop current udevmon service run new with cpudevmon.yml then restart udevmon service
-pkexec -e systemctl stop udevmon && udevmon -c cpudevmon.yml && systemctl start udevmon
+pkexec bash -c 'systemctl stop udevmon; udevmon -c cpudevmon.yml; systemctl start udevmon'
 
 #remove cpudevmon.yml
 rm cpudevmon.yml

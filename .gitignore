@@ -2,3 +2,4 @@ build/
 .vscode/
 keycodegrab/keycodes.txt
 keycodegrab/cpudevmon.yml
+keyboard.json
