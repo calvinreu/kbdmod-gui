@@ -10,11 +10,18 @@
 
 int main(int argc, char *argv[]) {
     input_event ev;
+    if (argc != 3) {
+        std::cout << "Usage: keycodegrab <number of keys to log> <output file name>" << std::endl;
+        return 1;
+    }
     //get the number of keys to log
     int numKeys = atoi(argv[1]);
+    //get the output file name
+    std::string outputFileName = argv[2];
+
     //create output file
     std::ofstream outputFile;
-    outputFile.open("keycodes.txt");
+    outputFile.open(outputFileName);
     //check if output file is open
     if(!outputFile.is_open()) {
         std::cout << "Error opening output file" << std::endl;
@@ -38,5 +45,9 @@ int main(int argc, char *argv[]) {
             outputFile << ev.code << std::endl;
         }
     }
+
+    //close output file
+    outputFile.close();
+
     return 0;        
 }
