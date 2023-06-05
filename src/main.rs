@@ -1,3 +1,9 @@
+//mod gui;
+mod keyboard;
+mod save;
+//use iced::Settings;
+//use gui::Gui;
+//
 fn main() {
-    println!("Hello, world!");
+    //Gui::run(Settings::default());    
 }
