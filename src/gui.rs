@@ -1,7 +1,8 @@
-use crate::keyboard::{VirtualKeyboard, KeyMapping};
-use crate::save::{SaveConfig, LoadConfig, DeleteConfig};
+use crate::keyboard::{VirtualKeyboard, KeyMapping, empty_vk};
+use crate::storage::{save_config, load_config, delete_config, rename_config, move_config};
 use std::collections::BTreeMap as Map;
 use std::collections::LinkedList as List;
+use std::ptr::null_mut;
 use iced::{Application, executor, theme};
 
 #[derive(Debug, Clone)]
@@ -39,58 +40,54 @@ pub enum Page {
 
 pub struct Gui {
     config: Map<String, VirtualKeyboard>,
-    current: VirtualKeyboard,
+    current: <'config+>::VirtualKeyboard,
     selected_config: String,
     selected_mapping: String,
     page: Page,
-    error: List<String>,
 }
 
 impl Application for Gui {
     type Executor = executor::Default;
     type Message = Message;
     type Theme = theme::Theme;
-    type Flags = ();
-    fn new(_: ()) -> (Gui, iced::Command<Message>) {
+    type Flags = String;
+    fn new(path: String) -> (Gui, iced::Command<Message>) {
         (Gui{
-            config: LoadConfig(),
-            current: EmptyVK(),
+            config: load_config(path).unwrap(),
+            current: std::rc::Rc::,
             selected_config: "".to_string(),
             selected_mapping: "".to_string(),
             page: Page::ConfigOverview,
-            error: List::new(),
         }, iced::Command::none())
     }
     fn title(&self) -> String {
-        String::from("kbdmod-gui")
+        String::from("kbdmod-config")
     }
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> iced::Command<Message> {
         match message {
             Message::ConfigSelected(name) => {
-                selected_config = name;
-                page = Page::Mapping;
+                self.selected_config = name;
+                self.page = Page::VirtualKeyboard;
+                self.current = self.config.;
+                return iced::Command::none();
             },
-            Message::ConfigNameChanged(old_name, new_name) => {
-                if config.contains_key(&new_name) {
-                    error.push("Config name already exists".to_string());
-                    return;
+            Message::ConfigNameChanged(old, new) => {
+                if self.config.contains_key(&new) {
+                    eprintln!("Error renaming config: config with name {0} already exists", new);
+                    return iced::Command::none();
                 }
-                config.insert(new_name, config.remove(&old_name));
+                match move_config(old, new) {
+                    Ok(()) => {
+                        self.config.insert(new.clone(), self.config.remove(&old).unwrap());
+                        self.selected_config = new;
+                    },
+                    Err(err) => {
+                        eprintln!("Error renaming config: {0}", err);
+                    },
+                };
+                return iced::Command::none();
             },
-            Message::ConfigAdded(name) => {
-                config.insert(name, keyboard::EmptyVK());
-                page = Page::KeymapCreation;
-            },
-            Message::ConfigRemoved(name) => {
-                config.remove(name);
-                DeleteConfig(name);
-            },
-            Message::KeymapCreated => {
-                page = Page::VirtualKeyboard;
-            },
-            Message::CopyFrom(name) => {
-                current = config.;                 
-            },
+
         }
     }
 }

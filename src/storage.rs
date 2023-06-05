@@ -1,5 +1,5 @@
 use crate::keyboard::{VirtualKeyboard};
-use std::fs::{File, remove_file, read_dir};
+use std::fs::{File, remove_file, read_dir, rename};
 use std::collections::BTreeMap as Map;
 use std::io::{BufReader, BufWriter, Write, Error};
 
@@ -11,7 +11,7 @@ pub fn save_config(path: String, config: &VirtualKeyboard)
     Ok(())
 }
 
-fn load_config(path: String) -> Result<Map<String, VirtualKeyboard>,Error> {
+pub fn load_config(path: String) -> Result<Map<String, VirtualKeyboard>,Error> {
     let mut configs : Map<String, VirtualKeyboard> = Map::new();
     let directory = read_dir(path)?;
     for entry in directory {
@@ -61,7 +61,12 @@ fn load_config(path: String) -> Result<Map<String, VirtualKeyboard>,Error> {
     Ok(configs)
 }
 
-fn delete_config(path: String) -> Result<(),Error> {
+pub fn move_config(old_path: String, new_path: String) -> Result<(),Error> {
+    rename(old_path, new_path)?;
+    Ok(())
+}
+
+pub fn delete_config(path: String) -> Result<(),Error> {
     remove_file(path)?;
     Ok(())
 }
