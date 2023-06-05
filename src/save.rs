@@ -116,6 +116,5 @@ mod tests {
         let config_loaded = load_config(FOLDER.to_string()).unwrap();
         assert_eq!(config_loaded["test1"], config);
         assert_eq!(config_loaded["test2"], config);
-        _ = remove_dir_all(FOLDER);
     }
 }
