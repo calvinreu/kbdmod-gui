@@ -28,6 +28,7 @@ pub struct VirtualKeyboard{
     pub mappings: Map<String, KeyMapping>,
 }
 
+#[allow(dead_code)]
 pub fn empty_vk() -> VirtualKeyboard{
     VirtualKeyboard{
         device_name: "".to_string(),

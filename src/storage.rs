@@ -1,92 +1,140 @@
 use crate::keyboard::{VirtualKeyboard};
-use std::fs::{File, remove_file, read_dir, rename};
-use std::collections::BTreeMap as Map;
+use std::fs::{File, remove_file};
 use std::io::{BufReader, BufWriter, Write, Error};
+use serde_derive::{Serialize, Deserialize};
 
-pub fn save_config(path: String, config: &VirtualKeyboard)
--> Result<(),Error> {
-    let mut buffer = BufWriter::new(File::create(path)?);
-    serde_json::to_writer(&mut buffer, &config)?;
-    buffer.flush()?;
-    Ok(())
+#[cfg(not(test))]
+const LOOKUP_FILE : &str = "~/.local/share/kbdmod-gui/lookup.json";
+#[cfg(not(test))]
+const CONFIG_FOLDER : &str = "~/.local/share/kbdmod-gui/configs/";
+
+#[cfg(test)]
+const LOOKUP_FILE : &str = "/tmp/kbdmod-gui-test/lookup.json";
+#[cfg(test)]
+const CONFIG_FOLDER : &str = "/tmp/kbdmod-gui-test/";
+
+
+const FIRST_VALID_ID : u32 = 1;
+const DELETED_ENTRY_ID : u32 = 0;
+const LAST_VALID_ID : u32 = std::u32::MAX;
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct Entry{
+    pub name: String,
+    pub path: String,
+    pub description: String, 
+    pub id: u32,
 }
 
-pub fn load_config(path: String) -> Result<Map<String, VirtualKeyboard>,Error> {
-    let mut configs : Map<String, VirtualKeyboard> = Map::new();
-    let directory = read_dir(path)?;
-    for entry in directory {
-        let entry = match entry {
-            Ok(entry) => entry,
-            Err(e) => {
-                eprintln!("Error listing files: {0}", e);
-                continue;
-            },
+pub static mut ENTRIES: Vec<Entry> = Vec::new();
+
+fn get_free_filename() -> String {
+    let mut id = 0 as u32;
+    while std::path::Path::new(&(CONFIG_FOLDER.to_string() + &id.to_string() + ".json")).exists() {
+        id += 1;
+    } 
+    
+    id.to_string() + ".json"
+}
+
+impl Entry {
+    pub fn new() -> Entry {
+        let mut id: u32 = FIRST_VALID_ID;
+
+        unsafe{
+        for entry in ENTRIES.iter() {
+            if entry.id > id {
+                id = entry.id;
+            }
+        }
+        }
+        if id == LAST_VALID_ID {
+            panic!("No valid id found, restarting could resolve this issue. if not please report this issue and include the {} file.", LOOKUP_FILE);
+        }
+        id += 1;
+        let path = get_free_filename();
+
+        let entry = 
+        Entry{
+            name: "".to_string(),
+            path: path,
+            description: "".to_string(),
+            id: id,
         };
-        let path = entry.path();
-        let name = match path.file_name(){
-            Some(name) => name,
-            None => {
-                continue;
-            },
-        };
-        let extension = match path.extension() {
-            Some(extension) => if extension == "json" {
-                ".json"
-            } else {
-                continue;
-            },
-            None => {
-                continue;
-            },
-        };
-        let name = name.to_str().unwrap().trim_end_matches(extension);
-        let file = match File::open(path.clone()) {
-            Ok(file) => file,
-            Err(e) => {
-                eprintln!("Error opening file: {0} {1}", name, e);
-                continue;
-            },
-        };
-        let buffer = BufReader::new(file);
-        let config: VirtualKeyboard = match serde_json::from_reader(buffer)
-        {
-            Ok(config) => config,
-            Err(e) => {
-                eprintln!("Error reading file: {0} {1}", name, e);
-                continue;
-            },
-        }; 
-        configs.insert(name.to_string(), config);
+        unsafe{
+        ENTRIES.push(entry.clone());
+        }
+        entry
     }
-    Ok(configs)
+    pub fn load_config(&self) -> Result<VirtualKeyboard,Error> {
+        let file = File::open(self.path.clone())?; 
+        let buffer = BufReader::new(file);
+        let config: VirtualKeyboard = serde_json::from_reader(buffer)?;
+        Ok(config)
+    }
+    pub fn update_config(&self, config: &VirtualKeyboard) -> Result<(),Error> {
+        let mut buffer = BufWriter::new(File::create(self.path.clone())?);
+        serde_json::to_writer(&mut buffer, &config)?;
+        buffer.flush()?;
+        Ok(())
+    }
+    pub fn commit(&self) -> Result<(),Error> {
+        unsafe{
+        for entry in ENTRIES.iter_mut() {
+            if entry.id == self.id {
+                *entry = self.clone();
+                return Ok(());
+            }
+        }
+        }
+        Err(Error::new(std::io::ErrorKind::NotFound, "Entry not found"))
+    }
+    pub fn remove(& mut self) -> Result<(),Error> {
+        self.id = DELETED_ENTRY_ID;
+        remove_file(self.path.clone())?;
+        Ok(())
+    }
+
 }
 
-pub fn move_config(old_path: String, new_path: String) -> Result<(),Error> {
-    rename(old_path, new_path)?;
+pub fn save_entries() -> Result<(),Error> {
+    let mut buffer = BufWriter::new(File::create(LOOKUP_FILE)?);
+    let mut save_vec : Vec<Entry> = Vec::new();
+    unsafe{
+    save_vec.reserve_exact(ENTRIES.len());
+    for i in ENTRIES.iter() {
+        if i.id != DELETED_ENTRY_ID {
+            let mut entry = i.clone();
+            entry.id = save_vec.len() as u32;
+            save_vec.push(entry);
+        }
+    }
+    }
+    serde_json::to_writer(&mut buffer, &save_vec)?;
+    buffer.flush()?;
+    unsafe{
+    ENTRIES = save_vec;
+    }
     Ok(())
 }
 
-pub fn delete_config(path: String) -> Result<(),Error> {
-    remove_file(path)?;
+pub fn load_entries() -> Result<(),Error> {
+    let file = File::open(LOOKUP_FILE)?; 
+    let buffer = BufReader::new(file);
+    unsafe{
+    ENTRIES = serde_json::from_reader(buffer)?;
+    }
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    const FOLDER : &str = "/tmp/kbdmod-gui-test";
     use super::*;
     use std::fs::{create_dir, remove_dir_all};
     #[test]
     fn test_saveload() {
-        _ = remove_dir_all(FOLDER);
-        create_dir(FOLDER).unwrap();
-        let path = format!("{}/test.json", FOLDER);
-        File::create(path.clone()).unwrap();
-        delete_config(path).unwrap();
-        assert_eq!(read_dir(FOLDER).unwrap().count(), 0);
-        _ = remove_dir_all(FOLDER);
-        create_dir(FOLDER).unwrap();
-        let path = format!("{}/test1.json", FOLDER);
+        _ = remove_dir_all(CONFIG_FOLDER);
+        create_dir(CONFIG_FOLDER).unwrap();
         let config = VirtualKeyboard{
             device_name: "test".to_string(),
             physical_devices: ["a".to_string(), "b".to_string(), "c".to_string()].to_vec(),
@@ -115,11 +163,38 @@ mod tests {
                 taphold: crate::keyboard::OutputType::Standard(["8".to_string(), "9".to_string(), "0".to_string()].to_vec()),
             })].iter().cloned().collect(),
         };
-        save_config(path, &config).unwrap();
-        let path = format!("{}/test2.json", FOLDER);
-        save_config(path, &config).unwrap();
-        let config_loaded = load_config(FOLDER.to_string()).unwrap();
-        assert_eq!(config_loaded["test1"], config);
-        assert_eq!(config_loaded["test2"], config);
+        let mut entry1 = Entry::new();
+        entry1.name = "test".to_string();
+        entry1.description = "testing".to_string();
+        let mut entry2 = Entry::new();
+        entry2.name = "test2".to_string();
+        entry2.description = "testing2".to_string();
+        entry1.commit().unwrap();
+        entry2.commit().unwrap();
+
+        entry1.update_config(&config).unwrap();
+        entry2.update_config(&config).unwrap();
+        
+        save_entries().unwrap();
+
+        unsafe{
+        let entries_current = ENTRIES.clone();
+        
+        load_entries().unwrap();
+
+        assert_eq!(entries_current, ENTRIES);
+
+        let conf1 = ENTRIES[0].load_config().unwrap();
+        let conf2 = ENTRIES[1].load_config().unwrap();
+
+        assert_eq!(conf1, config);
+        assert_eq!(conf2, config);
+
+        ENTRIES[0].remove().unwrap();
+        save_entries().unwrap();
+        load_entries().unwrap();
+        assert_eq!(ENTRIES.len(), 1);
+        
+        }
     }
 }

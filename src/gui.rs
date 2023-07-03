@@ -1,9 +1,10 @@
 use crate::keyboard::{VirtualKeyboard, KeyMapping, empty_vk};
-use crate::storage::{save_config, load_config, delete_config, rename_config, move_config};
-use std::collections::BTreeMap as Map;
+use crate::storage::{save_config, load_config, delete_config, move_config};
+use std::collections::HashMap as Map;
 use std::collections::LinkedList as List;
 use std::ptr::null_mut;
 use iced::{Application, executor, theme};
+use serde_json::map::Entry;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -39,8 +40,8 @@ pub enum Page {
 }
 
 pub struct Gui {
-    config: Map<String, VirtualKeyboard>,
-    current: <'config+>::VirtualKeyboard,
+    config_list: Vec<storage::Entry>,
+    current: VirtualKeyboard,
     selected_config: String,
     selected_mapping: String,
     page: Page,
@@ -68,7 +69,7 @@ impl Application for Gui {
             Message::ConfigSelected(name) => {
                 self.selected_config = name;
                 self.page = Page::VirtualKeyboard;
-                self.current = self.config.;
+                self.current = self.config.entry(name).and_modify();
                 return iced::Command::none();
             },
             Message::ConfigNameChanged(old, new) => {
