@@ -56,11 +56,12 @@ impl Entry {
 
         let entry = 
         Entry{
-            name: "".to_string(),
+            name: "New Keyboard".to_string(),
             path: path,
             description: "".to_string(),
             id: id,
         };
+        std::fs::File::create(path.clone()).unwrap();
         unsafe{
         ENTRIES.push(entry.clone());
         }

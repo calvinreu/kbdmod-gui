@@ -1,4 +1,4 @@
-//mod gui;
+mod gui;
 mod keyboard;
 mod storage;
 //use iced::Settings;

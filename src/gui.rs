@@ -1,22 +1,18 @@
 use crate::keyboard::{VirtualKeyboard, KeyMapping, empty_vk};
-use crate::storage::{save_config, load_config, delete_config, move_config};
+use crate::storage::{Entry, ENTRIES, self};
 use std::collections::HashMap as Map;
 use std::collections::LinkedList as List;
 use std::ptr::null_mut;
 use iced::{Application, executor, theme};
-use serde_json::map::Entry;
 
 #[derive(Debug, Clone)]
 pub enum Message {
     //config selection overview
-    ConfigSelected(String),
-    ConfigNameChanged(String, String),
-    ConfigAdded(String),
-    ConfigRemoved(String),
-    //keymap creation
-    CopyFrom(String),
-    NextKey,
-    KeymapCreated,
+    ConfigSelected(Entry),
+    ConfigNameChanged(Entry, String),
+    ConfigAdded,
+    ConfigRemoved(Entry),
+    ConfigCopied(Entry, Entry),//old, new
     //config editing devices
     OutputDeviceChanged(String),
     InputDeviceAdded(String),
@@ -32,18 +28,27 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
-pub enum Page {
-    ConfigOverview,
-    KeymapCreation,
-    VirtualKeyboard,
-    Mapping,
+enum Page {
+    ConfigOverview(ConfigSelectionType),
+    Confirmation(String),
+    ConfigEditing,
+    LayerEditing(String),
+    InputDeviceEditing,
+    PropertiesEditing,
+    MappingEditing(String),
+}
+
+#[derive(Debug, Clone)]
+enum ConfigSelectionType {
+    Edit,
+    Copy,
+    Delete,
 }
 
 pub struct Gui {
-    config_list: Vec<storage::Entry>,
     current: VirtualKeyboard,
-    selected_config: String,
-    selected_mapping: String,
+    selected_config: Entry,
+    selected_layer: String,
     page: Page,
 }
 
@@ -53,42 +58,43 @@ impl Application for Gui {
     type Theme = theme::Theme;
     type Flags = String;
     fn new(path: String) -> (Gui, iced::Command<Message>) {
+        let entry = Entry::new();
+        entry.update_config(&empty_vk());
         (Gui{
-            config: load_config(path).unwrap(),
-            current: std::rc::Rc::,
-            selected_config: "".to_string(),
-            selected_mapping: "".to_string(),
-            page: Page::ConfigOverview,
+            current: empty_vk(),
+            selected_config: entry,
+            page: Page::ConfigOverview(ConfigSelectionType::Edit),
         }, iced::Command::none())
     }
     fn title(&self) -> String {
-        String::from("kbdmod-config")
+        match self.page {
+            Page::ConfigOverview(_) => "kbdmod-gui".to_string(),
+            Page::Confirmation(message) => "confirm ".to_string() + message.as_str(),
+            Page::ConfigEditing => "editing config:".to_string() + self.selected_config.name.as_str(),
+            Page::LayerEditing() => "editing layer:".to_string() + self.selected_layer.as_str(),
+            Page::InputDeviceEditing => "editing input devices of ".to_string() + self.selected_config.as_str(),
+            Page::PropertiesEditing => "editing output properties of ".to_string() + self.selected_config.as_str(),
+            Page::MappingEditing => "editing mapping:".to_string() + self.selected_mapping.as_str(),
+        }
     }
     fn update(&mut self, message: Message) -> iced::Command<Message> {
         match message {
-            Message::ConfigSelected(name) => {
-                self.selected_config = name;
-                self.page = Page::VirtualKeyboard;
-                self.current = self.config.entry(name).and_modify();
+            Message::ConfigSelected(entry) => {
+                self.selected_config = entry.name.clone();
+                self.page = Page::ConfigEditing;
+                self.current = entry.load_config().unwrap();
                 return iced::Command::none();
             },
-            Message::ConfigNameChanged(old, new) => {
-                if self.config.contains_key(&new) {
-                    eprintln!("Error renaming config: config with name {0} already exists", new);
-                    return iced::Command::none();
-                }
-                match move_config(old, new) {
-                    Ok(()) => {
-                        self.config.insert(new.clone(), self.config.remove(&old).unwrap());
-                        self.selected_config = new;
-                    },
-                    Err(err) => {
-                        eprintln!("Error renaming config: {0}", err);
-                    },
-                };
+            Message::ConfigNameChanged(mut entry, name) => {
+                entry.name = name;
+                entry.commit();
                 return iced::Command::none();
             },
-
+            Message::ConfigAdded => {
+                let entry = Entry::new();
+                return iced::Command::none();
+            },  
         }
+
     }
 }
