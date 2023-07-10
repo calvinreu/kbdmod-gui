@@ -1,9 +1,9 @@
 use crate::keyboard::{VirtualKeyboard, KeyMapping, empty_vk};
-use crate::storage::{Entry, ENTRIES, self};
+use crate::storage::{Entry, self};
 use std::collections::HashMap as Map;
 use std::collections::LinkedList as List;
 use std::ptr::null_mut;
-use iced::{Application, executor, theme};
+use iced::{executor, theme, Sandbox};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -32,7 +32,7 @@ enum Page {
     ConfigOverview(ConfigSelectionType),
     Confirmation(String),
     ConfigEditing,
-    LayerEditing(String),
+    LayerEditing,
     InputDeviceEditing,
     PropertiesEditing,
     MappingEditing(String),
@@ -52,7 +52,7 @@ pub struct Gui {
     page: Page,
 }
 
-impl Application for Gui {
+impl Sandbox for Gui {
     type Executor = executor::Default;
     type Message = Message;
     type Theme = theme::Theme;
@@ -63,6 +63,7 @@ impl Application for Gui {
         (Gui{
             current: empty_vk(),
             selected_config: entry,
+            selected_layer: "".to_string(),
             page: Page::ConfigOverview(ConfigSelectionType::Edit),
         }, iced::Command::none())
     }
@@ -71,16 +72,16 @@ impl Application for Gui {
             Page::ConfigOverview(_) => "kbdmod-gui".to_string(),
             Page::Confirmation(message) => "confirm ".to_string() + message.as_str(),
             Page::ConfigEditing => "editing config:".to_string() + self.selected_config.name.as_str(),
-            Page::LayerEditing() => "editing layer:".to_string() + self.selected_layer.as_str(),
-            Page::InputDeviceEditing => "editing input devices of ".to_string() + self.selected_config.as_str(),
-            Page::PropertiesEditing => "editing output properties of ".to_string() + self.selected_config.as_str(),
-            Page::MappingEditing => "editing mapping:".to_string() + self.selected_mapping.as_str(),
+            Page::LayerEditing => "editing layer:".to_string() + self.selected_layer.as_str(),
+            Page::InputDeviceEditing => "editing input devices of ".to_string() + self.selected_config.name.as_str(),
+            Page::PropertiesEditing => "editing output properties of ".to_string() + self.selected_config.name.as_str(),
+            Page::MappingEditing(mapping) => "editing mapping:".to_string() + mapping.as_str(),
         }
     }
     fn update(&mut self, message: Message) -> iced::Command<Message> {
         match message {
             Message::ConfigSelected(entry) => {
-                self.selected_config = entry.name.clone();
+                self.selected_config = entry.clone();
                 self.page = Page::ConfigEditing;
                 self.current = entry.load_config().unwrap();
                 return iced::Command::none();
@@ -93,8 +94,16 @@ impl Application for Gui {
             Message::ConfigAdded => {
                 let entry = Entry::new();
                 return iced::Command::none();
-            },  
+            },
+            _ => {
+                return iced::Command::none();
+            },
         }
 
+    }
+    fn run(settings: iced::Settings<()>) -> Result<(), iced::Error>
+        where
+            Self: 'static + Sized, {
+        
     }
 }
