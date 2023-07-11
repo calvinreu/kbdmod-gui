@@ -1,9 +1,13 @@
-//mod gui;
+mod gui;
 mod keyboard;
 mod storage;
-//use iced::Settings;
-//use gui::Gui;
+mod render;
+mod iced_main;
+use iced::Settings;
+use gui::Gui;
+use iced::Sandbox;
 //
 fn main() {
-    //Gui::run(Settings::default());    
+    storage::init().unwrap();
+    Gui::run(Settings::default()).unwrap();
 }

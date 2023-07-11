@@ -25,7 +25,7 @@ pub struct VirtualKeyboard{
     pub physical_devices: Vec<String>,
     pub output_properties: Vec<String>,
     pub keymap: Map<String, u16>,
-    pub mappings: Map<String, KeyMapping>,
+    pub     mappings: Map<String, KeyMapping>,
 }
 
 #[allow(dead_code)]

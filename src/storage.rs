@@ -28,7 +28,25 @@ fn get_free_filename() -> String {
     id.to_string() + ".json"
 }
 
+pub fn init() -> Result<(),Error> {
+    if std::path::Path::new(LOOKUP_FILE).exists() {
+        return Ok(());
+    }
+    std::fs::create_dir_all(CONFIG_FOLDER)?;
+    std::fs::File::create(LOOKUP_FILE)?;
+    let mut entries = Vec::<Entry>::new();
+    save_entries(&mut entries)?;
+    Ok(())
+}
+
 impl Entry {
+    pub fn new_null() -> Entry {
+        Entry{
+            name: "".to_string(),
+            path: 0.to_string(),
+            description: "".to_string(),
+        }
+    }
     pub fn new(entries: &mut Vec<Entry>) -> Entry {
         let path = get_free_filename();
         let entry = 
@@ -40,6 +58,9 @@ impl Entry {
         std::fs::File::create(path).unwrap();
         entries.push(entry.clone());
         entry
+    }
+    pub fn is_null(&self) -> bool {
+        self.path == 0.to_string() && self.name == "".to_string() && self.description == "".to_string()
     }
     pub fn load_config(&self) -> Result<VirtualKeyboard,Error> {
         let file = File::open(self.path.clone())?; 
